@@ -2,9 +2,10 @@
 /*
 Plugin Name: Smart Notes
 Description: Allow users to highlight text and save personal notes. Includes dashboard and shortcode.
-Version: 1.1
+Version: 1.2
 Author: Hafiz Faraz
 Author URI: https://hfarazm.com/wordpress-plugins/smart-notes/
+Plugin URI: https://hfarazm.com/wordpress-plugins/smart-notes/
 */
 
 register_activation_hook(__FILE__, 'snp_create_table');
@@ -100,6 +101,36 @@ add_shortcode('user_notes_list', function () {
     return $output;
 });
 
+
+// Shortcode for listing ALL notes for admin
+add_shortcode('all_user_notes_list', function () {
+    if (!is_user_logged_in()) return 'Please log in to view your notes.';
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'smart_notes';
+    $notes = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table ORDER BY created_at DESC", $user_id));
+	
+    $output = '<div class="user-notes-list">';
+    foreach ($notes as $note) {
+	
+		$user_id = $note->user_id;
+		$user_info = get_userdata($user_id);
+		$admin_url = admin_url('user-edit.php?user_id=' .  $note->user_id);
+    	$user_name = esc_html($user_info->display_name);
+		
+        $snippet = wp_trim_words($note->selected_text, 10);
+        $output .= "<div class='note-item'>
+    	<strong>Page:</strong> <a href='{$note->page_url}'>{$note->page_url}</a><br>
+    	<strong>Text:</strong> {$snippet}<br>
+    	<strong>Note:</strong> {$note->comment}<br>
+    	<strong>Date:</strong> {$note->created_at}</small><br>
+    	<strong>User:</strong> <a href='" . esc_url($admin_url) . "'>" . esc_html($user_name) . "</a></small>
+		</div><hr>";	
+    }
+    $output .= '</div>';
+    return $output;
+});
+
 // Admin menu
 add_action('admin_menu', function () {
     add_menu_page('Smart Notes', 'Smart Notes', 'manage_options', 'smart-notes-dashboard', 'snp_admin_dashboard');
@@ -111,8 +142,19 @@ function snp_admin_dashboard() {
     $total = $wpdb->get_var("SELECT COUNT(*) FROM $table");
     $users = $wpdb->get_var("SELECT COUNT(DISTINCT user_id) FROM $table");
 
+	
     echo "<div class='wrap'><h1>Smart Notes Dashboard</h1>";
     echo "<p>Total Notes: <strong>$total</strong></p>";
     echo "<p>Unique Users: <strong>$users</strong></p>";
     echo "</div>";
+	
+	echo "<div class='wrap'><h2>All notes</h2>	";
+	echo do_shortcode('[all_user_notes_list]');
+	 echo "<div class='wrap'><h2>ShortCodes</h2>
+	<table>
+	<tr><th style='text-align: left;'>Shortcode</th><th style='text-align: left;'>Description</th><tr>
+	<tr><td>[user_notes_list]</td><td>Shortcode for listing notes</td></tr>
+	<tr><td>[user_notes_quantity]</td><td>Shortcode for number of notes</td></tr>
+	</table>
+	<div>";
 }

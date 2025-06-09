@@ -41,3 +41,20 @@
 .snp-popup button:hover {
     background: #560418;
 }
+.sm-controls {
+    display: flex;
+    float: left;
+    width: 100%;
+    align-content: center;
+    align-items: center;
+    justify-content: flex-end;
+    font-size: 12px;
+    text-align: right;
+}
+.sm-controls span.cancel-btn {
+    margin-right: 10px;
+}
+.sm-controls span.cancel-btn:hover {
+    text-decoration: underline;
+	cursor: pointer;
+}

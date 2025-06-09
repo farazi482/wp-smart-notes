@@ -2,7 +2,7 @@
 /*
 Plugin Name: Smart Notes
 Description: Allow users to highlight text and save personal notes. Includes dashboard and shortcode.
-Version: 1.2
+Version: 1.2.1
 Author: Hafiz Faraz
 Author URI: https://hfarazm.com/wordpress-plugins/smart-notes/
 Plugin URI: https://hfarazm.com/wordpress-plugins/smart-notes/

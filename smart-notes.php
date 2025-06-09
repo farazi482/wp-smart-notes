@@ -2,7 +2,7 @@
 /*
 Plugin Name: Smart Notes
 Description: Allow users to highlight text and save personal notes. Includes dashboard and shortcode.
-Version: 1.2.1
+Version: 1.2.2
 Author: Hafiz Faraz
 Author URI: https://hfarazm.com/wordpress-plugins/smart-notes/
 Plugin URI: https://hfarazm.com/wordpress-plugins/smart-notes/
@@ -60,6 +60,29 @@ function snp_save_note() {
     wp_send_json_success('Saved');
 }
 
+// Handle AJAX delete
+add_action('wp_ajax_snp_delete_note', 'snp_delete_note');
+function snp_delete_note() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error('Not logged in');
+    }
+
+    global $wpdb;
+    $note_id = intval($_POST['note_id']);
+    $user_id = get_current_user_id();
+    $table = $wpdb->prefix . 'smart_notes';
+
+    // Admin can delete any note, user only their own
+    $can_delete = current_user_can('manage_options') || $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE id = %d AND user_id = %d", $note_id, $user_id));
+    
+    if ($can_delete) {
+        $wpdb->delete($table, ['id' => $note_id]);
+        wp_send_json_success('Deleted');
+    } else {
+        wp_send_json_error('Permission denied');
+    }
+}
+
 
 // Shortcode for number of notes 
 add_shortcode('user_notes_quantity', function () {
@@ -95,12 +118,12 @@ add_shortcode('user_notes_list', function () {
             <strong>Text:</strong> {$snippet}<br>
             <strong>Note:</strong> {$note->comment}<br>
             <small>{$note->created_at}</small>
+			<button class='snp-delete-note' data-id='{$note->id}'>Remove</button>
         </div><hr>";
     }
     $output .= '</div>';
     return $output;
 });
-
 
 // Shortcode for listing ALL notes for admin
 add_shortcode('all_user_notes_list', function () {
@@ -108,28 +131,30 @@ add_shortcode('all_user_notes_list', function () {
 
     global $wpdb;
     $table = $wpdb->prefix . 'smart_notes';
-    $notes = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table ORDER BY created_at DESC", $user_id));
-	
+    $notes = $wpdb->get_results("SELECT * FROM $table ORDER BY created_at DESC"); // Fixed line
+
     $output = '<div class="user-notes-list">';
     foreach ($notes as $note) {
-	
-		$user_id = $note->user_id;
-		$user_info = get_userdata($user_id);
-		$admin_url = admin_url('user-edit.php?user_id=' .  $note->user_id);
-    	$user_name = esc_html($user_info->display_name);
-		
+        $user_id = $note->user_id;
+        $user_info = get_userdata($user_id);
+        $admin_url = admin_url('user-edit.php?user_id=' .  $note->user_id);
+        $user_name = esc_html($user_info->display_name);
+        
         $snippet = wp_trim_words($note->selected_text, 10);
         $output .= "<div class='note-item'>
-    	<strong>Page:</strong> <a href='{$note->page_url}'>{$note->page_url}</a><br>
-    	<strong>Text:</strong> {$snippet}<br>
-    	<strong>Note:</strong> {$note->comment}<br>
-    	<strong>Date:</strong> {$note->created_at}</small><br>
-    	<strong>User:</strong> <a href='" . esc_url($admin_url) . "'>" . esc_html($user_name) . "</a></small>
-		</div><hr>";	
+        <strong>Page:</strong> <a href='{$note->page_url}'>{$note->page_url}</a><br>
+        <strong>Text:</strong> {$snippet}<br>
+        <strong>Note:</strong> {$note->comment}<br>
+        <strong>Date:</strong> {$note->created_at}</small><br>
+        <strong>User:</strong> <a href='" . esc_url($admin_url) . "'>" . esc_html($user_name) . "</a></small>
+        <button class='snp-delete-note' data-id='{$note->id}'>Remove</button>
+        </div><hr>";	
     }
     $output .= '</div>';
     return $output;
 });
+
+
 
 // Admin menu
 add_action('admin_menu', function () {
@@ -158,3 +183,5 @@ function snp_admin_dashboard() {
 	</table>
 	<div>";
 }
+
+

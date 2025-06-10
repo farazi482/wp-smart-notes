@@ -58,3 +58,11 @@
     text-decoration: underline;
 	cursor: pointer;
 }
+button.snp-delete-note {
+    padding: 0 3px !important;
+    font-size: 11px;
+}
+button.snp-delete-note:hover {
+    color: white;
+    background: inherit;;
+}
